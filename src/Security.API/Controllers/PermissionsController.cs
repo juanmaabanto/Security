@@ -46,7 +46,7 @@ namespace N5.Challenge.Services.Security.API.Controllers
             => await _mediator.Send(new GetPermissionByIdQuery(permissionId), cancellationToken);
 
         /// <summary>
-        /// Create a new type of measure.
+        /// Create a new permission.
         /// </summary>
         /// <param name="command">Object to be created.</param>
         [Route("")]
