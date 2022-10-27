@@ -41,7 +41,7 @@ Luego ingresar la siguiente query
 
 ### Swagger
 
-![alt text](https://github.com/juanmaabanto/Security/blob/main/docs/images/swagger.png)
+![alt text](https://github.com/juanmaabanto/Security/blob/main/docs/images/swagger_api.png)
 
 ### Kafka
 
