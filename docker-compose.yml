@@ -1,0 +1,124 @@
+version: '2'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    expose:
+      - 22181
+    ports:
+      - 22181:2181
+    networks:
+      - security-network
+  
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    expose:
+      - 9092
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - security-network
+
+  elasticsearch:
+    image: elasticsearch:7.16.2
+    container_name: elasticsearch
+    restart: always
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data/
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      discovery.type: single-node
+    expose:
+      - 9200
+      - 9300
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    networks:
+      - security-network
+  
+  logstash:
+    image: logstash:7.16.2
+    container_name: logstash
+    restart: always
+    volumes:
+      - ./logstash/:/logstash_dir
+    command: logstash -f /logstash_dir/logstash.conf 
+    depends_on:
+      - elasticsearch
+    expose:
+      - 9600
+    ports:
+      - '9600:9600'
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"    
+    networks:
+      - security-network
+
+  Kibana:
+    image: kibana:7.16.2
+    container_name: kibana
+    restart: always
+    expose:
+      - 5601     
+    ports:
+      - '5601:5601'
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200  
+    depends_on:
+      - elasticsearch  
+    networks:
+      - security-network
+
+  database:
+    image: mssql:dev
+    restart: always
+    container_name: sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=P@ssw0rd
+      - MSSQL_PID=Express
+    expose:
+      - 1433
+    ports:
+      - 14339:1433
+    networks:
+      - security-network
+  
+  api:
+    image: securityapi:dev
+    restart: always
+    container_name: securityapi
+    environment:
+      - ASPNETCORE_ENVIRONMENT=production
+    depends_on:
+      - elasticsearch
+      - kafka
+      - database
+    expose:
+      - 80
+    ports:
+      - 5203:80
+    networks:
+      - security-network
+
+volumes:
+  elastic_data: {}
+
+networks:
+  security-network:
+    name: security-network
+    driver: bridge
